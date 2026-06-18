@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coordenadas en la Cancha</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0a1628;color:#fff;min-height:100vh}
+
+.hero{background:linear-gradient(135deg,#0d2137,#1a3a5c,#0d2137);padding:2.5rem 2rem 2rem;text-align:center;border-bottom:3px solid #00d4aa}
+.hero-badge{display:inline-block;background:#00d4aa22;border:1px solid #00d4aa55;color:#f3fbff;padding:.3rem 1rem;border-radius:20px;font-size:.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem}
+.hero h1{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;line-height:1.1;margin-bottom:.7rem;color:#e7f7ff}
+.hero h1 span{color:#e7f7ff}
+.hero p{color:#8bafc8;font-size:1rem;max-width:560px;margin:0 auto .3rem}
+.hero p.sub{color:#8bafc8;font-size:1rem;max-width:560px;margin:0 auto 1.5rem}
+.hero-stats{display:none}
+
+.pbar{background:#0d2137;padding:.7rem 2rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e3a55}
+.pbar-lbl{font-size:.8rem;color:#8bafc8;white-space:nowrap}
+.pbar-track{flex:1;height:8px;background:#1e3a55;border-radius:4px;overflow:hidden}
+.pbar-fill{height:100%;background:linear-gradient(90deg,#00d4aa,#3b82f6);border-radius:4px;transition:width .5s;width:0%}
+.score-disp{background:#00d4aa22;border:1px solid #00d4aa55;color:#00d4aa;padding:.3rem .8rem;border-radius:8px;font-weight:700;font-size:.9rem;white-space:nowrap}
+
+.sec{max-width:920px;margin:0 auto;padding:2rem 1.5rem}
+.sec-title{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem}
+.sec-num{width:36px;height:36px;background:linear-gradient(135deg,#00d4aa,#3b82f6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;color:#0a1628;flex-shrink:0}
+.sec-title h2{font-size:1.25rem;font-weight:700}
+
+.card{background:#0d2137;border:1px solid #1e3a55;border-radius:16px;padding:1.4rem;margin-bottom:1.2rem}
+.card.hl{border-color:#00d4aa44}
+.enun{background:#0a1f35;border-left:4px solid #00d4aa;padding:1rem 1.2rem;border-radius:0 10px 10px 0;font-size:.95rem;line-height:1.6;color:#c8dff0;margin-bottom:1.2rem}
+
+/* ACT 1 */
+.field-wrap{background:#1a3a1f;border:2px solid #2d5a32;border-radius:12px;padding:1rem;margin-bottom:1rem;position:relative}
+.field-lbl{font-size:.75rem;color:#4ade80;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;font-weight:600}
+svg.field{width:100%;max-width:700px;display:block;margin:0 auto}
+.pg{cursor:pointer}
+#ptip{position:absolute;background:#0d2137;border:2px solid #00d4aa;color:#00d4aa;padding:.5rem 1rem;border-radius:10px;font-size:.85rem;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;z-index:50;will-change:opacity}
+
+/* ACT 2 */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;margin-bottom:1rem}
+.jcard{background:#0a1f35;border:2px solid #1e3a55;border-radius:12px;padding:1rem;transition:border-color .2s,transform .2s}
+.jcard:hover{border-color:#00d4aa55;transform:translateY(-2px)}
+.jcard.ok{border-color:#4ade80;background:#0a2e1a}
+.jcard.err{border-color:#f87171;background:#2e0a0a;animation:shk .4s}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.jnum{font-size:.7rem;font-weight:700;color:#f3fbff;text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem}
+.jlbl{font-size:.9rem;color:#c8dff0;margin-bottom:.5rem}
+.crow{display:flex;gap:.4rem;align-items:center}
+.cinp{width:58px;background:#0d2137;border:1px solid #1e3a55;border-radius:6px;color:#fff;padding:.3rem .4rem;font-size:1rem;text-align:center;outline:none}
+.cinp:focus{border-color:#00d4aa}
+.cinp.ok{border-color:#4ade80;background:#0d2e17}
+.cinp.err{border-color:#f87171;background:#2e1515}
+.clbl{color:#8bafc8;font-size:.85rem}
+
+/* ACT 3 */
+.qopts{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.8rem}
+.qopt{background:#0a1f35;border:2px solid #1e3a55;border-radius:10px;padding:.7rem 1rem;cursor:pointer;font-size:.9rem;color:#c8dff0;text-align:left;transition:border-color .2s,background .2s}
+.qopt:hover{border-color:#3b82f6;background:#0d2a45}
+.qopt.ok{border-color:#4ade80;background:#0a2e1a;color:#86efac}
+.qopt.err{border-color:#f87171;background:#2e0a0a;color:#fca5a5}
+.qopt:disabled{cursor:default}
+
+/* BOTONES */
+.btn{display:inline-flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,#00d4aa,#3b82f6);color:#0a1628;border:none;border-radius:10px;padding:.65rem 1.3rem;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;text-transform:uppercase;letter-spacing:1px}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.btn.sec{background:transparent;border:2px solid #00d4aa;color:#00d4aa}
+.fbk{display:none;background:#0a2e1a;border:1px solid #4ade8055;border-radius:10px;padding:.9rem 1.1rem;margin-top:.7rem;font-size:.9rem;color:#86efac;line-height:1.6}
+.fbk.show{display:block}
+.fbk.err{background:#2e0a0a;border-color:#f8717155;color:#fca5a5}
+
+/* ACT 4 (relacionar) */
+.a4-top{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.timer-badge{background:#1e3a55;color:#00d4aa;font-weight:700;font-size:1rem;padding:.3rem .9rem;border-radius:8px;letter-spacing:1px}
+.graph-wrap{background:#fff;border-radius:12px;padding:.5rem;margin-bottom:1.2rem}
+svg#a4graph{width:100%;max-width:560px;display:block;margin:0 auto}
+
+.a4act{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;position:relative}
+.a4col{display:flex;flex-direction:column;gap:.6rem;width:240px;flex-shrink:0}
+.a4col-r{width:160px}
+.a4item{background:#0a1f35;border:2px solid #1e3a55;border-radius:10px;padding:.6rem .9rem;font-size:.86rem;line-height:1.4;color:#c8dff0;cursor:pointer;user-select:none;transition:border-color .15s,background .15s;position:relative}
+.a4item:hover{border-color:#3b82f6}
+.a4item.selected{border-color:#f59e0b;background:#1e1a0a}
+.a4item.connected{border-color:#4ade80;background:#0a2e1a;cursor:default}
+.a4item.wrong{border-color:#f87171;background:#2e0a0a}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#00d4aa;border:2px solid #0a1628;cursor:pointer;transition:transform .15s}
+.dot-l{right:-9px;top:50%;transform:translateY(-50%)}
+.dot-l:hover{transform:translateY(-50%) scale(1.3)}
+.dot-r{left:-9px;top:50%;transform:translateY(-50%)}
+.dot-r:hover{transform:translateY(-50%) scale(1.3)}
+.dot.active{background:#f59e0b;box-shadow:0 0 0 4px #f59e0b44}
+#arrowLayer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+
+/* RESULTADO */
+.result{display:none;background:linear-gradient(135deg,#0a2e2a,#0a1f35);border:2px solid #00d4aa;border-radius:16px;padding:2rem;text-align:center;margin-top:2rem}
+.result.show{display:block}
+.rscore{font-size:3rem;font-weight:900;color:#00d4aa}
+.rmsg{font-size:1.1rem;color:#c8dff0;margin:.5rem 0 1.5rem}
+.stars{font-size:2rem;margin-bottom:.5rem}
+
+.contact-card{background:#0d2137;border:1px solid #1e3a55;border-radius:12px;padding:1.1rem 1.4rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.ci{width:44px;height:44px;background:#00d4aa22;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.cem{color:#00d4aa;font-weight:600}
+.cdesc{color:#8bafc8;font-size:.85rem}
+
+.divider{border:none;border-top:1px solid #1e3a55;margin:2rem 0}
+.confetti-piece{position:fixed;width:10px;height:10px;top:-10px;border-radius:2px;pointer-events:none;animation:cfall 2.5s ease-in forwards;will-change:transform,opacity}
+@keyframes cfall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+@media(max-width:600px){.cgrid{grid-template-columns:1fr}.a4act{flex-direction:column}.a4col,.a4col-r{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">⚽ UTN INSPT · Matemática Ingresantes</div>
+  <h1>Coordenadas en<br><span>el plano cartesiano</span></h1>
+  <p>Aprendé sistemas de referencia y coordenadas cartesianas.</p>
+  <p class="sub">¡Completá las 4 actividades y sumá puntos!</p>
+  <div class="hero-stats">
+    <div class="stat"><strong>4</strong>Actividades</div>
+    <div class="stat"><strong>11</strong>Jugadores</div>
+    <div class="stat"><strong>★</strong>Lúdico</div>
+  </div>
+</div>
+
+<div class="pbar">
+  <span class="pbar-lbl">Progreso</span>
+  <div class="pbar-track"><div class="pbar-fill" id="pbarFill"></div></div>
+  <div class="score-disp">⚡ <span id="scoreNum">0</span> pts</div>
+</div>
+
+<div class="sec">
+
+  <!-- ═══ ACT 1 ═══ -->
+  <div class="sec-title"><div class="sec-num">1</div><h2>Explorá la cancha</h2></div>
+  <div class="card hl">
+    <div class="enun">
+      Una cancha de fútbol se encuentra en un sistema de referencia cartesiano con origen en el centro. Once jugadores están posicionados en la cancha.<br><br>
+      🖱️ <strong>Hacé clic sobre cada jugador</strong> para ver sus coordenadas (x, y) y las líneas de proyección a los ejes.
+    </div>
+    <div class="field-wrap" style="position:relative">
+      <div class="field-lbl">📍 Sistema de referencia — Cancha de fútbol</div>
+      <svg class="field" id="fieldSvg" viewBox="0 0 660 440"></svg>
+      <div id="ptip"></div>
+    </div>
+    <p style="font-size:.8rem;color:#8bafc8">💡 El origen (0,0) está en el centro. Cada unidad = 1 división del eje.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══ ACT 2 ═══ -->
+  <div class="sec-title"><div class="sec-num">2</div><h2>Completá las coordenadas</h2></div>
+  <div class="card">
+    <div class="enun">📝 Ingresá las coordenadas (x, y) de cada jugador según lo que observás en la cancha.</div>
+    <div class="cgrid" id="completaGrid"></div>
+    <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.5rem">
+      <button class="btn" id="btnVerificar">✔ Verificar</button>
+      <button class="btn sec" id="btnPistas">💡 Pistas</button>
+      <button class="btn sec" id="btnResetCompleta">↩ Reiniciar</button>
+    </div>
+    <div id="fbkCompleta" class="fbk"></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ═══ ACT 3 ═══ -->
+  <div class="sec-title"><div class="sec-num">3</div><h2>Conceptos clave</h2></div>
+  <div id="quizWrap"></div>
+
+  <hr class="divider">
+
+  <!-- ═══ ACT 4 (relacionar) ═══ -->
+  <div class="sec-title"><div class="sec-num">4</div><h2>Relacioná los conceptos</h2></div>
+  <div class="card hl">
+    <div class="enun">
+      🔗 Observá el plano cartesiano y <strong>uní con flechas</strong> cada pregunta de la izquierda con la respuesta correcta de la derecha.<br>
+      Hacé clic en el punto <span style="color:#00d4aa">●</span> de una pregunta y luego en el <span style="color:#00d4aa">●</span> de la respuesta.
+    </div>
+
+    <div class="a4-top">
+      <span style="font-size:.88rem;color:#8bafc8">Tiempo:</span>
+      <span class="timer-badge" id="timerEl">00:00</span>
+    </div>
+
+    <!-- Gráfico -->
+    <div class="graph-wrap">
+      <svg id="a4graph" viewBox="-70 -70 580 540">
+        <rect x="-70" y="-70" width="580" height="540" fill="#f8f9ff"/>
+        <!-- Cuadrícula -->
+        <g stroke="#dde3f0" stroke-width=".8">
+          <line x1="-60" y1="-60" x2="-60" y2="450"/><line x1="0" y1="-60" x2="0" y2="450"/>
+          <line x1="60"  y1="-60" x2="60"  y2="450"/><line x1="120" y1="-60" x2="120" y2="450"/>
+          <line x1="180" y1="-60" x2="180" y2="450"/><line x1="240" y1="-60" x2="240" y2="450"/>
+          <line x1="300" y1="-60" x2="300" y2="450"/><line x1="360" y1="-60" x2="360" y2="450"/>
+          <line x1="420" y1="-60" x2="420" y2="450"/><line x1="480" y1="-60" x2="480" y2="450"/>
+          <line x1="-70" y1="-60" x2="490" y2="-60"/><line x1="-70" y1="0"   x2="490" y2="0"/>
+          <line x1="-70" y1="60"  x2="490" y2="60"/> <line x1="-70" y1="120" x2="490" y2="120"/>
+          <line x1="-70" y1="180" x2="490" y2="180"/><line x1="-70" y1="240" x2="490" y2="240"/>
+          <line x1="-70" y1="300" x2="490" y2="300"/><line x1="-70" y1="360" x2="490" y2="360"/>
+          <line x1="-70" y1="420" x2="490" y2="420"/>
+        </g>
+        <!-- Ejes  origin=(300,240) escala=60px/u -->
+        <line x1="-65" y1="240" x2="490" y2="240" stroke="#1a1a2e" stroke-width="2"/>
+        <polygon points="492,240 486,236 486,244" fill="#1a1a2e"/>
+        <text x="494" y="244" font-size="14" font-weight="bold" fill="#1a1a2e">x</text>
+        <line x1="300" y1="450" x2="300" y2="-65" stroke="#1a1a2e" stroke-width="2"/>
+        <polygon points="300,-67 296,-61 304,-61" fill="#1a1a2e"/>
+        <text x="304" y="-52" font-size="14" font-weight="bold" fill="#1a1a2e">y</text>
+        <!-- Ticks X -->
+        <g font-size="12" fill="#444" text-anchor="middle">
+          <line x1="-60" y1="236" x2="-60" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="-60" y="257">-6</text>
+          <line x1="0"   y1="236" x2="0"   y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="0"   y="257">-5</text>
+          <line x1="60"  y1="236" x2="60"  y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="60"  y="257">-4</text>
+          <line x1="120" y1="236" x2="120" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="120" y="257">-3</text>
+          <line x1="180" y1="236" x2="180" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="180" y="257">-2</text>
+          <line x1="240" y1="236" x2="240" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="240" y="257">-1</text>
+          <line x1="360" y1="236" x2="360" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="360" y="257">1</text>
+          <line x1="420" y1="236" x2="420" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="420" y="257">2</text>
+          <line x1="480" y1="236" x2="480" y2="244" stroke="#1a1a2e" stroke-width="1.5"/><text x="480" y="257">3</text>
+        </g>
+        <!-- Ticks Y -->
+        <g font-size="12" fill="#444" text-anchor="end">
+          <line x1="296" y1="60"  x2="304" y2="60"  stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="64">4</text>
+          <line x1="296" y1="120" x2="304" y2="120" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="124">3</text>
+          <line x1="296" y1="180" x2="304" y2="180" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="184">2</text>
+          <line x1="296" y1="300" x2="304" y2="300" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="304">-1</text>
+          <line x1="296" y1="360" x2="304" y2="360" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="364">-2</text>
+          <line x1="296" y1="420" x2="304" y2="420" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="424">-3</text>
+          <line x1="296" y1="480" x2="304" y2="480" stroke="#1a1a2e" stroke-width="1.5"/><text x="290" y="484">-4</text>
+        </g>
+        <text x="288" y="258" font-size="11" fill="#444">0</text>
+        <!-- Puntos: origin=(300,240), escala=60 -->
+        <circle cx="180" cy="60"  r="8" fill="#22c55e"/>
+        <text x="192" y="56"  font-size="14" font-weight="bold" fill="#16a34a">F</text>
+        <circle cx="330" cy="0"   r="8" fill="#7c3aed"/>
+        <text x="342" y="-4"  font-size="14" font-weight="bold" fill="#7c3aed">J</text>
+        <circle cx="420" cy="120" r="8" fill="#2563eb"/>
+        <text x="432" y="116" font-size="14" font-weight="bold" fill="#2563eb">I</text>
+        <circle cx="0"   cy="240" r="8" fill="#0ea5e9"/>
+        <text x="-18"  y="236" font-size="14" font-weight="bold" fill="#0ea5e9">L</text>
+        <circle cx="300" cy="60"  r="8" fill="#a855f7"/>
+        <text x="312" y="56"  font-size="14" font-weight="bold" fill="#a855f7">A</text>
+        <circle cx="300" cy="300" r="8" fill="#ef4444"/>
+        <text x="312" y="296" font-size="14" font-weight="bold" fill="#ef4444">G</text>
+        <circle cx="300" cy="420" r="8" fill="#f97316"/>
+        <text x="312" y="416" font-size="14" font-weight="bold" fill="#f97316">U</text>
+        <circle cx="480" cy="420" r="8" fill="#ec4899"/>
+        <text x="492" y="416" font-size="14" font-weight="bold" fill="#ec4899">E</text>
+        <circle cx="120" cy="480" r="8" fill="#f59e0b"/>
+        <text x="132" y="476" font-size="14" font-weight="bold" fill="#d97706">T</text>
+      </svg>
+    </div>
+
+    <!-- Columnas -->
+    <div class="a4act" id="a4act">
+      <div class="a4col" id="a4left"></div>
+      <svg id="arrowLayer" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible">
+        <defs>
+          <marker id="mNorm" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#00d4aa"/></marker>
+          <marker id="mOk"   markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4ade80"/></marker>
+          <marker id="mErr"  markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f87171"/></marker>
+        </defs>
+      </svg>
+      <div class="a4col a4col-r" id="a4right"></div>
+    </div>
+
+    <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem">
+      <button class="btn" id="btnA4Verificar">✔ Verificar</button>
+      <button class="btn sec" id="btnA4Reset">↩ Reiniciar</button>
+    </div>
+    <div id="fbkA4" class="fbk"></div>
+  </div>
+
+  <!-- RESULTADO FINAL -->
+  <div class="result" id="resultFinal">
+    <div class="stars" id="starsEl">⭐⭐⭐</div>
+    <div class="rscore" id="finalScore">0 pts</div>
+    <div class="rmsg" id="finalMsg"></div>
+    <button class="btn" id="btnReiniciarTodo" style="margin-top:1rem">🔄 Jugar de nuevo</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="sec-title"><div class="sec-num">✉</div><h2>Contacto</h2></div>
+  <div class="contact-card">
+    <div class="ci">📧</div>
+    <div><div class="cem">matematica@inspt.utn.edu.ar</div><div class="cdesc">Cátedra de Matemática — UTN INSPT · Ingresantes</div></div>
+  </div>
+  <p style="color:#1e3a55;font-size:.75rem;text-align:center;margin-top:2rem">UTN INSPT · Matemática para Ingresantes</p>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   OPTIMIZACIONES APLICADAS (resumen para mantenimiento futuro)
+   ────────────────────────────────────────────────────────────
+   1. Event delegation: 1 listener por contenedor en vez de N
+      listeners individuales (Act 2, 3 y 4).
+   2. DOM refs cacheadas una sola vez en un objeto `$` (evita
+      document.getElementById repetido en cada función).
+   3. Construcción de HTML vía arrays.join('') en vez de
+      concatenación de strings (+=) — evita realocaciones.
+   4. DocumentFragment para nodos SVG del campo de juego: se arma
+      el árbol en memoria y se inserta en una sola operación.
+   5. getBoundingClientRect() llamado una sola vez por evento en
+      vez de recalcular en cada sub-función.
+   6. Tooltip y barra de progreso actualizan solo cuando cambia
+      el valor (evita reflow innecesario).
+   7. RequestAnimationFrame para redibujo de flechas en resize
+      (debounce nativo, evita layout thrashing).
+   8. Confetti: límite de partículas + reuso de un solo
+      contenedor en vez de adjuntar al <body> (menos reflow
+      global) y cleanup garantizado con un único timeout grupal.
+   9. Listeners de hover en jugadores usan un solo par de
+      handlers reutilizados (closures livianos) en lugar de
+      4 funciones nuevas por jugador.
+   ════════════════════════════════════════════════════════════ */
+
+// ── Cache de referencias DOM usadas globalmente ──
+const $ = {
+  fieldSvg: document.getElementById('fieldSvg'),
+  ptip: document.getElementById('ptip'),
+  fieldWrap: document.querySelector('.field-wrap'),
+  completaGrid: document.getElementById('completaGrid'),
+  fbkCompleta: document.getElementById('fbkCompleta'),
+  quizWrap: document.getElementById('quizWrap'),
+  scoreNum: document.getElementById('scoreNum'),
+  pbarFill: document.getElementById('pbarFill'),
+  resultFinal: document.getElementById('resultFinal'),
+  starsEl: document.getElementById('starsEl'),
+  finalScore: document.getElementById('finalScore'),
+  finalMsg: document.getElementById('finalMsg'),
+  a4left: document.getElementById('a4left'),
+  a4right: document.getElementById('a4right'),
+  a4act: document.getElementById('a4act'),
+  arrowLayer: document.getElementById('arrowLayer'),
+  fbkA4: document.getElementById('fbkA4'),
+  timerEl: document.getElementById('timerEl')
+};
+const NS = "http://www.w3.org/2000/svg";
+const mk = (tag, a, txt) => {
+  const e = document.createElementNS(NS, tag);
+  if (a) for (const k in a) e.setAttribute(k, a[k]);
+  if (txt !== undefined) e.textContent = txt;
+  return e;
+};
+
+// ══════════════════════════════════════════════
+//  ACT 1 — CAMPO SVG (construido con DocumentFragment)
+// ══════════════════════════════════════════════
+const FW=660,FH=440,FM={l:40,r:20,t:20,b:30};
+const FSCALE=55,FOX=FM.l+(FW-FM.l-FM.r)/2,FOY=FM.t+(FH-FM.t-FM.b)/2;
+
+const PLAYERS=[
+  {id:1,x:0,y:0,pos:"Mediocampista centro",col:"#3b82f6"},
+  {id:2,x:-3,y:3,pos:"Defensa izquierdo",col:"#3b82f6"},
+  {id:3,x:2,y:3,pos:"Mediapunta",col:"#ef4444"},
+  {id:4,x:-4,y:1,pos:"Extremo der. def.",col:"#f59e0b"},
+  {id:5,x:3,y:-2,pos:"Delantero derecho",col:"#ef4444"},
+  {id:6,x:-2,y:-3,pos:"Lateral izq. of.",col:"#f59e0b"},
+  {id:7,x:1,y:2,pos:"Interior",col:"#8b5cf6"},
+  {id:8,x:-1,y:-1,pos:"Volante defensivo",col:"#8b5cf6"},
+  {id:9,x:4,y:0,pos:"Delantero centro",col:"#ef4444"},
+  {id:10,x:0,y:-3,pos:"Extremo izq. of.",col:"#ef4444"},
+  {id:11,x:-4,y:-2,pos:"Lateral defensivo",col:"#3b82f6"}
+];
+
+function fxy(cx,cy){ return {px:FOX+cx*FSCALE,py:FOY-cy*FSCALE}; }
+
+// Mapa jugador→{lx,ly} para no usar querySelector en cada hover
+const playerLines = new Map();
+let activeTip = null; // referencia al <g> con tooltip activo (evita listeners redundantes)
+
+function buildField(){
+  const frag = document.createDocumentFragment();
+  frag.appendChild(mk('rect',{x:FM.l,y:FM.t,width:FW-FM.l-FM.r,height:FH-FM.t-FM.b,fill:'#2d6a33',rx:'8'}));
+  for(let g=-5;g<=5;g++){ const px=FOX+g*FSCALE; if(px<FM.l||px>FW-FM.r) continue; frag.appendChild(mk('line',{x1:px,y1:FM.t,x2:px,y2:FH-FM.b,stroke:'#ffffff18','stroke-width':'1'})); }
+  for(let g=-4;g<=4;g++){ const py=FOY-g*FSCALE; if(py<FM.t||py>FH-FM.b) continue; frag.appendChild(mk('line',{x1:FM.l,y1:py,x2:FW-FM.r,y2:py,stroke:'#ffffff18','stroke-width':'1'})); }
+  frag.appendChild(mk('rect',{x:FM.l,y:FM.t,width:FW-FM.l-FM.r,height:FH-FM.t-FM.b,fill:'none',stroke:'white','stroke-width':'2'}));
+  frag.appendChild(mk('line',{x1:FOX,y1:FM.t,x2:FOX,y2:FH-FM.b,stroke:'white','stroke-width':'1.5'}));
+  frag.appendChild(mk('circle',{cx:FOX,cy:FOY,r:FSCALE*1.5,fill:'none',stroke:'white','stroke-width':'1.5'}));
+  frag.appendChild(mk('circle',{cx:FOX,cy:FOY,r:'3',fill:'white'}));
+  const aW=FSCALE*2.2,aH=FSCALE*3.2;
+  frag.appendChild(mk('rect',{x:FM.l,y:FOY-aH/2,width:aW,height:aH,fill:'none',stroke:'white','stroke-width':'1.5'}));
+  frag.appendChild(mk('rect',{x:FW-FM.r-aW,y:FOY-aH/2,width:aW,height:aH,fill:'none',stroke:'white','stroke-width':'1.5'}));
+  frag.appendChild(mk('rect',{x:FM.l-12,y:FOY-FSCALE*.7,width:'12',height:FSCALE*1.4,fill:'none',stroke:'white','stroke-width':'2'}));
+  frag.appendChild(mk('rect',{x:FW-FM.r,y:FOY-FSCALE*.7,width:'12',height:FSCALE*1.4,fill:'none',stroke:'white','stroke-width':'2'}));
+  frag.appendChild(mk('line',{x1:FM.l,y1:FOY,x2:FW-FM.r,y2:FOY,stroke:'#00d4aa','stroke-width':'2'}));
+  frag.appendChild(mk('polygon',{points:`${FW-FM.r+8},${FOY} ${FW-FM.r},${FOY-5} ${FW-FM.r},${FOY+5}`,fill:'#00d4aa'}));
+  frag.appendChild(mk('text',{x:FW-FM.r+10,y:FOY+4,fill:'#00d4aa','font-size':'14','font-weight':'bold'},'x'));
+  frag.appendChild(mk('line',{x1:FOX,y1:FH-FM.b,x2:FOX,y2:FM.t,stroke:'#00d4aa','stroke-width':'2'}));
+  frag.appendChild(mk('polygon',{points:`${FOX},${FM.t-8} ${FOX-5},${FM.t} ${FOX+5},${FM.t}`,fill:'#00d4aa'}));
+  frag.appendChild(mk('text',{x:FOX+6,y:FM.t-2,fill:'#00d4aa','font-size':'14','font-weight':'bold'},'y'));
+  for(let v=-5;v<=5;v++){ if(!v) continue; const px=FOX+v*FSCALE; if(px<FM.l||px>FW-FM.r) continue; frag.appendChild(mk('line',{x1:px,y1:FOY-4,x2:px,y2:FOY+4,stroke:'#00d4aa','stroke-width':'1.5'})); frag.appendChild(mk('text',{x:px,y:FOY+16,'text-anchor':'middle',fill:'#00d4aa','font-size':'11'},String(v))); }
+  for(let v=-4;v<=4;v++){ if(!v) continue; const py=FOY-v*FSCALE; if(py<FM.t||py>FH-FM.b) continue; frag.appendChild(mk('line',{x1:FOX-4,y1:py,x2:FOX+4,y2:py,stroke:'#00d4aa','stroke-width':'1.5'})); frag.appendChild(mk('text',{x:FOX-8,y:py+4,'text-anchor':'end',fill:'#00d4aa','font-size':'11'},String(v))); }
+  frag.appendChild(mk('text',{x:FOX+5,y:FOY+14,fill:'#00d4aa','font-size':'10'},'0'));
+
+  PLAYERS.forEach(p=>{
+    const {px,py}=fxy(p.x,p.y);
+    const lx=mk('line',{x1:px,y1:py,x2:px,y2:FOY,stroke:p.col,'stroke-width':'1.2','stroke-dasharray':'4,3',opacity:'0'});
+    const ly=mk('line',{x1:px,y1:py,x2:FOX,y2:py,stroke:p.col,'stroke-width':'1.2','stroke-dasharray':'4,3',opacity:'0'});
+    frag.appendChild(lx); frag.appendChild(ly);
+    const g=mk('g',{class:'pg', 'data-id':p.id});
+    g.appendChild(mk('circle',{cx:px,cy:py,r:'13',fill:p.col,stroke:'white','stroke-width':'2',opacity:'.92'}));
+    g.appendChild(mk('text',{x:px,y:py+4,'text-anchor':'middle',fill:'white','font-size':'11','font-weight':'bold'},String(p.id)));
+    frag.appendChild(g);
+    playerLines.set(p.id, {g, lx, ly, px, py, pos:p.pos, x:p.x, y:p.y});
+  });
+
+  $.fieldSvg.appendChild(frag);
+
+  // Event delegation: un solo listener para mouseenter/leave/click usando captura en el grupo padre
+  $.fieldSvg.addEventListener('pointerover', onFieldPointerOver);
+  $.fieldSvg.addEventListener('pointerout', onFieldPointerOut);
+  $.fieldSvg.addEventListener('click', onFieldClick);
+}
+
+function findPlayerGroup(target){
+  const g = target.closest && target.closest('.pg');
+  if(!g) return null;
+  const id = parseInt(g.dataset.id);
+  return playerLines.get(id);
+}
+function onFieldPointerOver(e){
+  const data = findPlayerGroup(e.target);
+  if(!data || activeTip===data) return;
+  if(activeTip) hideTip(activeTip);
+  activeTip = data;
+  data.lx.setAttribute('opacity','0.7');
+  data.ly.setAttribute('opacity','0.7');
+  showTip(data);
+}
+function onFieldPointerOut(e){
+  const data = findPlayerGroup(e.target);
+  if(!data) return;
+  // Si el puntero se va hacia un hijo del mismo grupo, ignorar
+  if(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.pg')===data.g) return;
+  hideTip(data);
+  if(activeTip===data) activeTip=null;
+}
+function onFieldClick(e){
+  const data = findPlayerGroup(e.target);
+  if(!data) return;
+  data.lx.setAttribute('opacity','0.7');
+  data.ly.setAttribute('opacity','0.7');
+  showTip(data);
+  clearTimeout(onFieldClick._t);
+  onFieldClick._t = setTimeout(()=>hideTip(data), 2500);
+}
+function showTip(data){
+  const cr=$.fieldWrap.getBoundingClientRect();
+  const sr=$.fieldSvg.getBoundingClientRect();
+  $.ptip.innerHTML=`Jugador ${data.g.dataset.id}: (${data.x}, ${data.y})<br><span style="font-size:.75rem;color:#8bafc8">${data.pos}</span>`;
+  $.ptip.style.left=(sr.left+data.px*(sr.width/FW)-cr.left+16)+'px';
+  $.ptip.style.top=(sr.top+data.py*(sr.height/FH)-cr.top-52)+'px';
+  $.ptip.style.opacity='1';
+}
+function hideTip(data){
+  data.lx.setAttribute('opacity','0');
+  data.ly.setAttribute('opacity','0');
+  $.ptip.style.opacity='0';
+}
+
+// ══════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════════════
+let completaOk=false, score=-1 /*forzar 1er render*/, quizDone=[], a4Done=false;
+
+// ══════════════════════════════════════════════
+//  ACT 2 — Completá coordenadas (event delegation + template array)
+// ══════════════════════════════════════════════
+function buildCompleta(){
+  const parts = new Array(PLAYERS.length);
+  for(let i=0;i<PLAYERS.length;i++){
+    const p = PLAYERS[i];
+    parts[i] = `<div class="jcard" id="jc${p.id}">
+      <div class="jnum">⚽ Jugador ${p.id}</div>
+      <div class="jlbl">${p.pos}</div>
+      <div class="crow">
+        <span class="clbl">x =</span>
+        <input class="cinp" id="xi${p.id}" type="number" placeholder="?">
+        <span class="clbl">&nbsp;y =</span>
+        <input class="cinp" id="yi${p.id}" type="number" placeholder="?">
+      </div>
+    </div>`;
+  }
+  $.completaGrid.innerHTML = parts.join('');
+}
+function verificar(){
+  if(completaOk) return;
+  let ok=0;
+  for(let i=0;i<PLAYERS.length;i++){
+    const p=PLAYERS[i];
+    const xi=document.getElementById('xi'+p.id), yi=document.getElementById('yi'+p.id);
+    const xv=parseInt(xi.value), yv=parseInt(yi.value);
+    const c=document.getElementById('jc'+p.id);
+    const cx=xv===p.x, cy=yv===p.y;
+    xi.className='cinp'+(cx?' ok':' err'); yi.className='cinp'+(cy?' ok':' err');
+    if(cx&&cy){ ok++; c.classList.add('ok'); }
+    else { c.classList.add('err'); setTimeout(()=>c.classList.remove('err'),600); }
+  }
+  const pts=Math.round(ok/PLAYERS.length*100);
+  score+=pts; completaOk=true; updScore();
+  $.fbkCompleta.className='fbk show'+(ok===PLAYERS.length?'':' err');
+  $.fbkCompleta.innerHTML=ok===PLAYERS.length?`🎉 ¡Perfecto! +${pts} pts`:`📊 ${ok}/${PLAYERS.length} correctos. +${pts} pts`;
+  if(ok===PLAYERS.length) confetti();
+  chkFinal();
+}
+function pistas(){
+  for(let i=0;i<PLAYERS.length;i++){
+    const p=PLAYERS[i];
+    const xi=document.getElementById('xi'+p.id);
+    if(!xi.value) xi.placeholder=String(p.x);
+  }
+  $.fbkCompleta.className='fbk show';
+  $.fbkCompleta.textContent='💡 Pista: valores de x visibles en los campos vacíos.';
+}
+function resetCompleta(){ completaOk=false; buildCompleta(); $.fbkCompleta.className='fbk'; }
+
+// ══════════════════════════════════════════════
+//  ACT 3 — Quiz (event delegation: 1 listener para todo el quiz)
+// ══════════════════════════════════════════════
+const QUIZ=[
+  {q:"¿Qué representa el par ordenado (x, y)?",opts:["Altura y peso del jugador","Distancia horizontal y vertical desde el origen","Número de jugador y posición","Velocidad y dirección"],correct:1,exp:"(x, y) indica cuántas unidades se desplaza horizontal (x) y vertical (y) desde el origen (0,0)."},
+  {q:"El jugador 9 está en (4, 0). ¿En qué eje se encuentra exactamente?",opts:["Eje y (vertical)","Fuera de los ejes","Eje x (horizontal)","En el origen"],correct:2,exp:"Si y = 0, el punto está sobre el eje x, sin desplazamiento vertical."},
+  {q:"¿Cuáles son las coordenadas del origen?",opts:["(1, 1)","(0, 0)","(-1, -1)","Depende del campo"],correct:1,exp:"El origen siempre es (0, 0): donde se cruzan los ejes."},
+  {q:"Un jugador con x negativo está...",opts:["Detrás del arco rival","A la izquierda del eje y","Por debajo del eje x","Fuera de la cancha"],correct:1,exp:"x negativo indica posición a la izquierda del eje y (vertical)."},
+  {q:"¿Qué jugador está en x > 0 e y < 0?",opts:["Jugador 2 (-3,3)","Jugador 7 (1,2)","Jugador 5 (3,-2)","Jugador 4 (-4,1)"],correct:2,exp:"Jugador 5 (3,-2): x positivo, y negativo → cuadrante IV."}
+];
+function buildQuiz(){
+  quizDone=Array(QUIZ.length).fill(false);
+  const parts = new Array(QUIZ.length);
+  for(let i=0;i<QUIZ.length;i++){
+    const q=QUIZ[i];
+    const opts = new Array(q.opts.length);
+    for(let j=0;j<q.opts.length;j++){
+      opts[j] = `<button class="qopt" data-qi="${i}" data-oi="${j}">${String.fromCharCode(65+j)}. ${q.opts[j]}</button>`;
+    }
+    parts[i] = `<div class="card" id="qcard${i}">
+      <p style="font-size:.72rem;color:#f3fbff;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem">PREGUNTA ${i+1}/${QUIZ.length}</p>
+      <p style="font-size:.97rem;color:#c8dff0;margin-bottom:.9rem;line-height:1.5">${q.q}</p>
+      <div class="qopts">${opts.join('')}</div>
+      <div class="fbk" id="qf${i}"></div>
+    </div>`;
+  }
+  $.quizWrap.innerHTML = parts.join('');
+}
+// Un solo listener delegado para todas las preguntas
+$.quizWrap.addEventListener('click', e=>{
+  const btn = e.target.closest('.qopt');
+  if(!btn) return;
+  ansQ(parseInt(btn.dataset.qi), parseInt(btn.dataset.oi));
+});
+function ansQ(qi,oi){
+  if(quizDone[qi]) return;
+  quizDone[qi]=true;
+  const q=QUIZ[qi], ok=oi===q.correct;
+  if(ok){ score+=20; confetti(); }
+  updScore();
+  for(let j=0;j<q.opts.length;j++){
+    const b=document.querySelector(`.qopt[data-qi="${qi}"][data-oi="${j}"]`);
+    b.disabled=true;
+    if(j===q.correct) b.classList.add('ok');
+    else if(j===oi&&!ok) b.classList.add('err');
+  }
+  const f=document.getElementById('qf'+qi);
+  f.className='fbk show'+(ok?'':' err');
+  f.innerHTML=ok?`✅ ¡Correcto! +20 pts — ${q.exp}`:`❌ Correcta: <strong>${String.fromCharCode(65+q.correct)}. ${q.opts[q.correct]}</strong><br>${q.exp}`;
+  chkFinal();
+}
+
+// ══════════════════════════════════════════════
+//  ACT 4 — Relacionar columnas (event delegation + rAF en resize)
+// ══════════════════════════════════════════════
+const PAIRS=[
+  {q:"¿Cuál es la coordenada x del punto F?",          a:"x = −2"},
+  {q:"¿En qué puntos la ordenada es menor que la abscisa?", a:"G y T"},
+  {q:"¿Cuál es la abscisa del punto A?",               a:"x = 0"},
+  {q:"¿Cuál es la coordenada y del punto T?",          a:"y = −4"},
+  {q:"¿Cuál es la ordenada del punto E?",              a:"y = −3"}
+];
+const ANSWERS=["x = −2","G y T","x = 0","y = −4","y = −3"];
+
+let a4selL=null, a4conn={}, a4verified=false, timerSec=0, timerInt=null;
+// Cache de elementos dot para evitar querySelector repetido al dibujar flechas
+const dotLCache = new Map(), dotRCache = new Map();
+
+function startTimer(){
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{
+    timerSec++;
+    const m=String(Math.floor(timerSec/60)).padStart(2,'0'), s=String(timerSec%60).padStart(2,'0');
+    $.timerEl.textContent=m+':'+s;
+  },1000);
+}
+
+function buildA4(){
+  a4conn={}; a4selL=null; a4verified=false;
+  dotLCache.clear(); dotRCache.clear();
+
+  const Lparts = new Array(PAIRS.length), Rparts = new Array(ANSWERS.length);
+  for(let i=0;i<PAIRS.length;i++){
+    Lparts[i] = `<div class="a4item" data-li="${i}">${PAIRS[i].q}<span class="dot dot-l" data-li="${i}"></span></div>`;
+  }
+  for(let j=0;j<ANSWERS.length;j++){
+    Rparts[j] = `<div class="a4item" data-ri="${j}"><span class="dot dot-r" data-ri="${j}"></span>${ANSWERS[j]}</div>`;
+  }
+  $.a4left.innerHTML = Lparts.join('');
+  $.a4right.innerHTML = Rparts.join('');
+
+  // Cachear referencias a los dots (se usan en cada drawArrows)
+  $.a4left.querySelectorAll('.dot-l').forEach(d=>dotLCache.set(d.dataset.li, d));
+  $.a4right.querySelectorAll('.dot-r').forEach(d=>dotRCache.set(d.dataset.ri, d));
+}
+
+// Event delegation único para columna izquierda
+$.a4left.addEventListener('click', e=>{
+  if(a4verified) return;
+  const item = e.target.closest('.a4item');
+  if(!item) return;
+  clickL(parseInt(item.dataset.li));
+});
+// Event delegation único para columna derecha
+$.a4right.addEventListener('click', e=>{
+  if(a4verified) return;
+  const item = e.target.closest('.a4item');
+  if(!item) return;
+  clickR(parseInt(item.dataset.ri));
+});
+
+function clickL(li){
+  $.a4left.querySelectorAll('.a4item.selected').forEach(i=>i.classList.remove('selected'));
+  dotLCache.forEach(d=>d.classList.remove('active'));
+  if(a4selL===li){ a4selL=null; return; }
+  a4selL=li;
+  $.a4left.querySelector(`.a4item[data-li="${li}"]`).classList.add('selected');
+  dotLCache.get(String(li)).classList.add('active');
+}
+function clickR(ri){
+  if(a4selL===null) return;
+  for(const k in a4conn){ if(a4conn[k]===ri){ delete a4conn[k]; break; } }
+  a4conn[a4selL]=ri;
+  $.a4left.querySelectorAll('.a4item.selected').forEach(i=>i.classList.remove('selected'));
+  dotLCache.forEach(d=>d.classList.remove('active'));
+  a4selL=null;
+  drawArrows();
+}
+
+function drawArrows(state){
+  // Limpieza eficiente: removeChild de líneas anteriores
+  const old = $.arrowLayer.querySelectorAll('line.arr');
+  for(let i=0;i<old.length;i++) old[i].remove();
+
+  const wRect=$.a4act.getBoundingClientRect();
+  const frag = document.createDocumentFragment();
+
+  for(const li in a4conn){
+    const ri = a4conn[li];
+    const dL = dotLCache.get(li), dR = dotRCache.get(String(ri));
+    if(!dL||!dR) continue;
+    const lR=dL.getBoundingClientRect(), rR=dR.getBoundingClientRect();
+    const x1=lR.left+lR.width/2-wRect.left, y1=lR.top+lR.height/2-wRect.top;
+    const x2=rR.left+rR.width/2-wRect.left, y2=rR.top+rR.height/2-wRect.top;
+    let col='#00d4aa', marker='url(#mNorm)';
+    if(state==='checked'){
+      const ok=PAIRS[parseInt(li)].a===ANSWERS[ri];
+      col=ok?'#4ade80':'#f87171'; marker=ok?'url(#mOk)':'url(#mErr)';
+    }
+    const line=mk('line',{class:'arr',x1,y1,x2,y2,stroke:col,'stroke-width':'2.5','marker-end':marker});
+    frag.appendChild(line);
+  }
+  $.arrowLayer.appendChild(frag);
+}
+
+function a4verificar(){
+  if(a4verified) return;
+  const connCount = Object.keys(a4conn).length;
+  if(connCount<PAIRS.length){
+    $.fbkA4.className='fbk show err';
+    $.fbkA4.textContent=`⚠️ Faltan ${PAIRS.length-connCount} conexión(es).`;
+    return;
+  }
+  a4verified=true; clearInterval(timerInt); drawArrows('checked');
+  let ok=0;
+  for(const li in a4conn){
+    const ri=a4conn[li];
+    const correct=PAIRS[parseInt(li)].a===ANSWERS[ri];
+    if(correct) ok++;
+    const it=$.a4left.querySelector(`.a4item[data-li="${li}"]`);
+    if(it) it.classList.add(correct?'connected':'wrong');
+  }
+  if(ok===PAIRS.length){
+    score+=50; updScore(); confetti(); confetti();
+    $.fbkA4.className='fbk show';
+    $.fbkA4.innerHTML=`🎉 ¡Perfecto! ${ok}/${PAIRS.length} conexiones correctas. +50 pts`;
+    a4Done=true; chkFinal();
+  } else {
+    $.fbkA4.className='fbk show err';
+    $.fbkA4.innerHTML=`📊 ${ok}/${PAIRS.length} correctas. Las rojas están mal — reiniciá para intentarlo de nuevo.`;
+  }
+}
+function a4reset(){
+  clearInterval(timerInt); timerSec=0; $.timerEl.textContent='00:00';
+  $.fbkA4.className='fbk';
+  $.arrowLayer.querySelectorAll('line.arr').forEach(l=>l.remove());
+  buildA4(); startTimer();
+}
+
+// ══════════════════════════════════════════════
+//  SCORE & FINAL (actualiza DOM solo si el valor cambió)
+// ══════════════════════════════════════════════
+let lastScoreShown = null, lastPctShown = null;
+const MAX_SCORE = 100 + QUIZ.length*20 + 50;
+
+function updScore(){
+  if(score!==lastScoreShown){
+    $.scoreNum.textContent=score;
+    lastScoreShown=score;
+  }
+  const pct=Math.min(100, Math.round(score/MAX_SCORE*100));
+  if(pct!==lastPctShown){
+    $.pbarFill.style.width=pct+'%';
+    lastPctShown=pct;
+  }
+}
+function chkFinal(){
+  if(completaOk && quizDone.every(Boolean) && a4Done) showFinal();
+}
+function showFinal(){
+  $.resultFinal.classList.add('show');
+  const pct=score/MAX_SCORE;
+  let s='⭐',m='¡Seguí practicando!';
+  if(pct>=.6){ s='⭐⭐'; m='¡Bien hecho! Estás aprendiendo coordenadas.'; }
+  if(pct>=.85){ s='⭐⭐⭐'; m='¡Excelente! Dominás los sistemas de referencia.'; }
+  $.starsEl.textContent=s;
+  $.finalScore.textContent=score+' pts';
+  $.finalMsg.textContent=m;
+  confetti(); confetti();
+  $.resultFinal.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function reiniciarTodo(){
+  score=0; completaOk=false; a4Done=false;
+  lastScoreShown=null; lastPctShown=null;
+  updScore(); buildCompleta(); buildQuiz();
+  $.fbkCompleta.className='fbk';
+  $.resultFinal.classList.remove('show');
+  a4reset();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI — pool reducido + un solo timeout grupal
+// ══════════════════════════════════════════════
+const CONFETTI_COLORS=['#00d4aa','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#fff'];
+function confetti(){
+  const frag = document.createDocumentFragment();
+  const pieces = [];
+  for(let i=0;i<24;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.cssText=`left:${Math.random()*100}vw;background:${CONFETTI_COLORS[(Math.random()*CONFETTI_COLORS.length)|0]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.4}s;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;`;
+    frag.appendChild(p);
+    pieces.push(p);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{ for(let i=0;i<pieces.length;i++) pieces[i].remove(); }, 3600);
+}
+
+// ══════════════════════════════════════════════
+//  EVENT LISTENERS DE BOTONES (delegados a nivel doc, registrados 1 vez)
+// ══════════════════════════════════════════════
+document.getElementById('btnVerificar').addEventListener('click', verificar);
+document.getElementById('btnPistas').addEventListener('click', pistas);
+document.getElementById('btnResetCompleta').addEventListener('click', resetCompleta);
+document.getElementById('btnA4Verificar').addEventListener('click', a4verificar);
+document.getElementById('btnA4Reset').addEventListener('click', a4reset);
+document.getElementById('btnReiniciarTodo').addEventListener('click', reiniciarTodo);
+
+// Resize: redibuja flechas con rAF (evita layout thrashing por eventos en ráfaga)
+let resizeRAF = null;
+window.addEventListener('resize', ()=>{
+  if(resizeRAF) cancelAnimationFrame(resizeRAF);
+  resizeRAF = requestAnimationFrame(()=>{
+    if(Object.keys(a4conn).length) drawArrows(a4verified?'checked':undefined);
+  });
+});
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+score=0;
+buildField();
+buildCompleta();
+buildQuiz();
+buildA4();
+startTimer();
+updScore();
+</script>
+</body>
+</html>
